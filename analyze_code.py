@@ -13,8 +13,22 @@ from tqdm import tqdm
 # data_directory = '\\\\pn.vai.org\\projects\\wen\\vari-core-generated-data\\OIC\\OIC-234 EB Junwei\\EB8 image'
 # output_directory = "\\\\pn.vai.org\\projects\\wen\\vari-core-generated-data\\OIC\\OIC-234 EB Junwei\\EB8 image\\Measurements"
 
-data_directory = '../data/EB8 image'
-output_directory = '../processed/20251228'
+#data_directory = '../data/EB8 image'
+#output_directory = '../processed/20251228'
+
+data_directory = '\\\\pn.vai.org\\projects\\wen\\vari-core-generated-data\\OIC\\OIC 01272026 Junwei'
+
+output_directory = '\\\\pn.vai.org\\projects\\wen\\vari-core-generated-data\\OIC\\OIC 01272026 Junwei\\Measurements'
+
+# wt13-1
+# wt13-2
+# wt13-3
+# wt13-4
+# wt14-2
+# wt14-3
+# wt14-4
+# wt14-5
+# wt23-2
 
 # Begin processing
 
@@ -38,11 +52,12 @@ for f in tqdm(files_list):
         
         # Identify the EB cells
 
-        if (fn == "HET66-1 2X") or (fn == "HET66-2 2X") or (fn == "HET66-3 2X"):
+        if (fn == "wt13-1") or (fn == "HET66-2 2X") or (fn == "HET66-3 2X"):
             # Handle these images
-            labels, inner_cell_labels = segmentation.segment_cells(image, thresh = 0.95)
+            labels, inner_cell_labels = segmentation.segment_cells(image, thresh = 0.85)
         else:        
-            labels, inner_cell_labels = segmentation.segment_cells(image)
+            continue # Skip remaining files for now
+            # labels, inner_cell_labels = segmentation.segment_cells(image)
 
         # Measure properties
         cell_props = skimage.measure.regionprops(labels)
