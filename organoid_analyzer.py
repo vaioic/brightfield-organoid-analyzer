@@ -8,6 +8,8 @@ import csv
 from tqdm import tqdm
 from pathlib import Path
 
+from cellpose import models
+
 def process_directory(input_dir, output_dir, file_ext=[".tif"], thresh=0.99, cell_type="EB"):
 
     # Validate the inputs
@@ -44,6 +46,26 @@ def process_directory(input_dir, output_dir, file_ext=[".tif"], thresh=0.99, cel
 
 def process_image(input_path, output_dir, thresh=0.99, cell_type="EB"):
 
+    # Validate the inputs
+    if isinstance(input_path, str):
+        input_path = Path(input_path)
+    elif isinstance(input_path, Path):
+        pass
+    else:
+        raise ValueError(f"Expected the first argument to be a str or Path to the image file. Instead it is a {type(input_path)}.")
+    
+    if isinstance(output_dir, str):
+        output_dir = Path(output_dir)
+    elif isinstance(output_dir, Path):
+        pass
+    else:
+        raise ValueError(f"Expected the second argument to be a str or Path to the output directory. Instead it is a {type(output_dir)}.")
+    
+    if not output_dir.exists():
+        output_dir.mkdir(parents=True)
+    elif output_dir.is_file():
+        raise ValueError(f"Expected the second argument to a path to a directory. Instead it appears to be a file.")    
+
     # Read in image
     image_rgb = skimage.io.imread(input_path)
     image_gray = skimage.color.rgb2gray(image_rgb)
@@ -55,6 +77,10 @@ def process_image(input_path, output_dir, thresh=0.99, cell_type="EB"):
         case "ES":
             labels, inner_cell_labels = segment_cells_dark(image_gray, thresh=thresh)
     
+    # # Check if labels are empty
+    # if not np.any(labels > 0):
+        
+
     # Measure properties
     cell_props = skimage.measure.regionprops(labels)
 
@@ -172,6 +198,11 @@ def segment_cells_dark(image, thresh=0.99):
 
     mask = image > (thresh * np.max(image))
 
+    # plt.imshow(mask)
+    # plt.show()
+
+    # exit()
+
     # mask = skimage.morphology.opening(mask, skimage.morphology.disk(30))
     mask = skimage.morphology.remove_small_holes(mask, max_size=100000)
     mask = skimage.morphology.opening(mask, skimage.morphology.disk(5))
@@ -206,7 +237,7 @@ def segment_cells_dark(image, thresh=0.99):
     
     labels = skimage.morphology.remove_small_objects(labels, max_size=min_area)
 
-    output_test = imoverlay(image, labels, color=[0, 1, 0, 0.4], plot_outlines=False)
+    # output_test = imoverlay(image, labels, color=[0, 1, 0, 0.4], plot_outlines=False)
 
     # plt.imshow(output_test)
     # plt.show()
@@ -257,6 +288,76 @@ def imoverlay(image_A, image_B, color, plot_outlines=True, normalize=True):
 
     return image_out
 
+def dev_test_cp(input_path, output_dir):
+
+    if isinstance(input_path, str):
+        input_path = Path(input_path)
+    
+    if isinstance(output_dir, str):
+        output_dir = Path(output_dir)
+    
+    if not output_dir.exists():
+        output_dir.mkdir(parents=True)
+    
+    if input_path.is_file():
+        file_list = [input_path.resolve]
+    else:
+        file_list = list(input_path.glob("*.tif"))
+
+    # imgs should be a list of images
+    imgs = [skimage.io.imread(f) for f in file_list]
+
+    #img = skimage.io.imread(input_path)
+
+    model = models.CellposeModel(gpu=True) # Runs cellpose sam
+    masks, _, _ = model.eval(imgs, diameter=50)
+
+    # Watershed and save the images
+    for idx, mask in enumerate(masks):
+
+        distance = ndi.distance_transform_edt(mask)
+        coords = skimage.feature.peak_local_max(distance, footprint=np.ones((3, 3)), labels=mask, threshold_abs=(0.3 * np.max(distance)), min_distance=75)
+
+        mask_marker = np.zeros(distance.shape, dtype=bool)
+        mask_marker[tuple(coords.T)] = True
+
+        markers, _ = ndi.label(mask_marker)
+        labels = skimage.segmentation.watershed(-distance, markers, mask=mask)
+        labels = skimage.segmentation.clear_border(labels)
+
+        output_test = imoverlay(imgs[idx], labels, color=[0, 1, 0, 0.4], plot_outlines=False)
+
+        fn = file_list[idx].stem
+
+        skimage.io.imsave(output_dir / (fn + ".png"), output_test)
+
+        cell_props = skimage.measure.regionprops(labels)        
+
+        with open(os.path.join(output_dir, fn + ".csv"), 'w', newline='') as file:        
+            writer = csv.writer(file, delimiter=",")
+
+            #Write CSV headers
+            writer.writerow(["Cell", "Label", "Total area (px)"])
+        
+            ctr = 0
+            for p in cell_props:
+                writer.writerow([ctr + 1, p.label, p.area])
+                ctr += 1
+
+
+
+
+
+
+
+
+    # output_test = imoverlay(img, labels, color=[0, 1, 0, 0.4], plot_outlines=False)
+
+    # plt.imshow(output_test)
+    # plt.show()
+
+
+
 if __name__ == "__main__":
 
     # data_directory = r"\\pn.vai.org\projects_secondary\wen\vari-core-generated-data\OIC\Junwei 04302026\EB organoid"
@@ -265,21 +366,25 @@ if __name__ == "__main__":
     
     # process_directory(data_directory, output_directory)
 
-    data_directory = r"\\pn.vai.org\projects_secondary\wen\vari-core-generated-data\OIC\Junwei 04302026\ES cell"
+    # data_directory = r"\\pn.vai.org\projects_secondary\wen\vari-core-generated-data\OIC\Junwei 04302026\ES cell"
 
-    output_directory = "../processed/2026-05-12 ES cell"
+    # output_directory = "../processed/2026-05-12 ES cell"
     
-    process_directory(data_directory, output_directory, thresh=0.65, cell_type="ES")
+    # process_directory(data_directory, output_directory, thresh=0.65, cell_type="ES")
 
 
-    data_directory = r"../data/ES cell/Set 2"
+    # data_directory = r"../data/ES cell/Set 2"
 
-    output_directory = "../processed/2026-05-12 ES cell"
+    # output_directory = "../processed/2026-05-12 ES cell"
     
-    process_directory(data_directory, output_directory, thresh=0.45, cell_type="ES")
+    # process_directory(data_directory, output_directory, thresh=0.45, cell_type="ES")
 
-    # image_path = r"D:\Projects\OIC-303 Junwei\data\ES cell\WT19-1 10X.tif"
+    # --- Testing ---
 
-    # output_directory = "../processed/2026-05-12 ES cell_DEV"
+    image_path = r"D:\Projects\OIC-303 Junwei\data\ES cell"
+
+    output_directory = "../processed/2026-05-13 ES cell_DEV"
+
+    dev_test_cp(image_path, output_directory)
     
-    # process_image(image_path, output_directory, cell_type="ES")
+    #process_image(image_path, output_directory, cell_type="ES", thresh=0.5)
