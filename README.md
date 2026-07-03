@@ -96,5 +96,6 @@ Please review the Acknowledgement and Authorship Guidelines on [VAI's Core Techn
 
 ## Changelog
 
-### v0.1.0 (2026-07-02)
+### v0.1.0 (2026-07-03)
 * Adapted code into a toolbox.
+* Test that code works on EB cells [[OIC-334](https://varioic.atlassian.net/browse/OIC-334)]
