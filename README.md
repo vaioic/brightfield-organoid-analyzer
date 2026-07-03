@@ -1,65 +1,100 @@
-# OIC-234
+# Organoid analyzer
 
-This project is in a collaboration with Dr. Junwei Niu, Wen lab.
+A Python tool for analyzing brightfield images of organoids.
 
-## Getting started
+## Usage
 
-### Prerequisites
+### Setup and installation
 
-- [Python](https://www.python.org/downloads/) version 3.14.0
+You can install the library directly either from PyPi or from this repository.
 
-### Installation
+```bash
+pip install organoid-analyzer
+pip install "organoid-analyzer @ git+https://github.com/vaioic/organoid-analyzer.git@main"
+```
 
-1. Download or clone the GitHub repository
+If you need the latest bleeding-edge version (which likely contains bugs and other incomplete code)
+
+```bash
+pip install "organoid-analyzer @ git+https://github.com/vaioic/organoid-analyzer.git@dev"
+```
+
+
+## Development
+
+### Using uv (Recommended)
+
+This project uses [uv](https://docs.astral.sh/uv/) to manage the development environment.
+
+1. Install ``uv``
+    * **macOS or Linux:** ``curl -LsSf https://astral.sh/uv/install.sh | sh``
+    * **Windows:** ``powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"``
+    
+    To check if you have ``uv`` installed, open a terminal and run ``uv --version``.
+
+2. Clone the repository
    ```bash
-   git clone git@github.com:vaioic/OIC-234.git
-   cd OIC-234
+   git clone git@github.com:vaioic/brightfield-organoid-analyzer.git
+   cd brightfield-organoid-analyzer
    ```
 
-2. Create a python virtual environment
+3. Sync the environment (this will setup the correct virtual environment and dependencies)
    ```bash
-   python -m venv venv
+   uv sync
    ```
 
-3. Activate the virtual environment
+3. Link this toolbox in editable mode in your analysis project
    ```bash
-   .\venv\Scripts\activate
+   uv add --editable "path/to/brightfield-organoid-analyzer"
    ```
+   Note: You should change this to the published version when you are done.
 
-4. Install the dependencies using Pip
-   ```bash
-   python -m pip install -r .\requirements.txt
-   ```
 
-### Running the code
+### Code style and testing
 
-1. Start the virtual environment if not already loaded
-   ```bash
-   .\venv\Scripts\activate
-   ```
+This project also uses ``ruff`` for ultra-fast linting and code formatting, and ``pytest`` for unit tests.
 
-2. Start Jupyter Lab
-   ```bash
-   python -m jupyterlab
-   ```
+```bash
+# Run linting checks
+uv run ruff check
 
-3. Open the ``analyze_data.ipynb`` notebook
+# Auto-format codebase
+uv run ruff format
 
-4. Modify the variables ``data_directory`` and ``output_directory`` to point to the folder containing the image files and to the output directory, respectively
+# Run test suite
+uv run pytest
+```
 
 ## Issues
 
-If you encounter any issues with running the code or have any questions, please create an [Issue](https://github.com/vaioic/OIC-234/issues) or send an email to opticalimaging@vai.org. If you are reporting a programmatic bug, please include any error messages to aid with troubleshooting.
+If you encounter any issues with running the code or have any questions, please create an [Issue](https://github.com/vaioic/brightfield-organoid-analyzer/issues) or send an email to opticalimaging@vai.org. If you are reporting a bug, please include any error messages to aid with troubleshooting.
 
-## Acknowledgements
+## License
 
-### Dependencies
+This project is licensed under the GPLv3 License. See the [LICENSE](LICENSE) file for details.
 
-This project relies on the following packages:
+## Citing & Acknowledgements
 
-- jupyterlab v4.4.10
-- numpy v2.3.4
-- scipy v1.16.3
+This repository is publicly available for open-source use, but it is developed and maintained by the Optical Imaging Core at the Van Andel Institute. If code from this repository contributed to data used in a publication, abstract, or presentation, please cite and acknowledge our work based on your affiliation:
 
-**Note:** For full dependency list, see [requirements.txt](requirements.txt).
+### For External Users
+Please cite this repository and acknowledge the author(s) in your publication's materials, methods, or acknowledgements section:
+> "Image analysis pipelines were adapted from open-source tools developed by the Optical Imaging Core at the Van Andel Institute (GitHub:[brightfield-organoid-analyzer](https://github.com/vaioic/brightfield-organoid-analyzer))."
 
+If you require custom adjustments or advanced analysis support, please contact us at opticalimaging@vai.org.
+
+### For Internal Users & Close Collaborators
+If you are an internal researcher or an external collaborator working directly with our staff, please include our Research Resource Identifier (RRID) in your materials and methods section:
+> "Image analysis and data processing were performed in collaboration with the Optical Imaging Core at the Van Andel Institute (RRID:SCR_021968)."
+
+Please review the Acknowledgement and Authorship Guidelines on [VAI's Core Technology and Services website](https://vanandelinstitute.sharepoint.com/sites/Cores/SitePages/Acknowledgements-and-Authorship.aspx)
+
+### Contributors
+<a href="https://github.com/vaioic/brightfield-organoid-analyzer/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=vaioic/brightfield-organoid-analyzer" />
+</a>
+
+## Changelog
+
+### v0.1.0 (2026-07-02)
+* Adapted code into a toolbox.
