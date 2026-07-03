@@ -56,17 +56,29 @@ def process_directory(
         if f.suffix in file_ext:
             file_list.append(f.resolve())
 
+    all_df = []
+
     with tqdm(file_list) as pbar:
         for f in pbar:
             pbar.set_description(f"{f.name}")
-            process_image(
+            df = process_image(
                 f,
                 output_dir,
                 threshold=threshold,
                 cell_type=cell_type,
                 spacing=spacing,
                 pbar=pbar,
+                return_df=True,
             )
+
+            # Add the filename
+            df["Image"] = str(f)
+            all_df.append(df)
+
+    # Merge the dataframes and export
+    merged_df = pd.concat(all_df, ignore_index=True)
+
+    export_to_csv(output_dir / "merged.csv", merged_df, spacing=spacing)
 
 
 def process_image(
@@ -77,6 +89,7 @@ def process_image(
     segment_inner=False,
     spacing=None,
     pbar=None,
+    return_df=False,
 ):
 
     # Validate the inputs
@@ -176,13 +189,33 @@ def process_image(
 
     # Save output
     fn = input_path.stem
-    export_to_csv(output_dir / (fn + ".csv"), props, spacing=spacing)
+
+    # Convert data to DataFrame
+    df = pd.DataFrame(props)
+
+    # Drop the centroid information
+    df = df.drop(
+        columns=[
+            "centroid-0",
+            "centroid-1",
+            "bbox-0",
+            "bbox-1",
+            "bbox-2",
+            "bbox-3",
+            "image_convex",
+        ]
+    )
+
+    export_to_csv(output_dir / (fn + ".csv"), df, spacing=spacing)
 
     fig = make_labeled_image(image_rgb, labels, props)
 
     fig.savefig(output_dir / (fn + "_labels.png"))
 
     update_status(f"{input_path.name}:Data written to {output_dir}.", pbar)
+
+    if return_df:
+        return df
 
 
 def update_status(msg, pbar=None):
@@ -281,7 +314,7 @@ def make_labeled_image(image, labels, props):
     return fig
 
 
-def export_to_csv(output_file, data_dict, spacing=None):
+def export_to_csv(output_file, data, spacing=None):
     """
     Write data to csv.
 
@@ -292,8 +325,8 @@ def export_to_csv(output_file, data_dict, spacing=None):
     ----------
     output_file : Path
         Path to output file
-    data_dict : dict
-        Output from regionprops_table
+    data : DataFrame
+        Output from regionprops_table, converted into a DataFrame
     spacing : float, optional
         Scaling in microns per pixel, by default None. If None, the values in pixels
         will be returned.
@@ -308,29 +341,25 @@ def export_to_csv(output_file, data_dict, spacing=None):
         "feret_diameter_max_microns": "Feret diameter (micron)",
     }
 
-    # Convert data to DataFrame
-    df = pd.DataFrame(data_dict)
-
-    # Drop the centroid information
-    df = df.drop(
-        columns=["centroid-0", "centroid-1", "bbox-0", "bbox-1", "image_convex"]
-    )
-
     # Convert to microns if spacing exists
     if spacing:
-        if "area" in df.columns:
-            df["area_microns"] = df["area"] * (spacing**2)
+        if "area" in data.columns:
+            data["area_microns"] = data["area"] * (spacing**2)
 
-        if "feret_diameter_max" in df.columns:
-            df["feret_diameter_max_microns"] = df["feret_diameter_max"] * spacing
+        if "feret_diameter_max" in data.columns:
+            data["feret_diameter_max_microns"] = data["feret_diameter_max"] * spacing
 
     # Rename the columns
-    df = df.rename(columns=header_map)
+    data = data.rename(columns=header_map)
 
     # Move the label column to the left
-    df = df[["Object ID"] + [col for col in df.columns if col != "Object ID"]]
+    leading_cols = ["Object ID"]
+    if "Image" in data.columns:
+        leading_cols = ["Image"] + leading_cols
 
-    df.to_csv(output_file, index=False)
+    data = data[leading_cols + [col for col in data.columns if col not in leading_cols]]
+
+    data.to_csv(output_file, index=False)
 
 
 def segment_cells(
