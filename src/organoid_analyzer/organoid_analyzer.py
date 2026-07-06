@@ -1,6 +1,7 @@
 # Import required packages
 import csv
 import os
+import warnings
 from pathlib import Path
 
 import numpy as np
@@ -14,14 +15,7 @@ from scipy.spatial.distance import pdist, squareform
 from tqdm import tqdm
 
 
-def process_directory(
-    input_dir,
-    output_dir,
-    file_ext=[".tif"],
-    threshold=0.99,
-    cell_type="EB",
-    spacing=None,
-):
+def process_directory(input_dir, output_dir, file_ext=[".tif"], spacing=None, **kwargs):
 
     # Validate the inputs
     if isinstance(input_dir, str):
@@ -64,16 +58,16 @@ def process_directory(
             df = process_image(
                 f,
                 output_dir,
-                threshold=threshold,
-                cell_type=cell_type,
                 spacing=spacing,
                 pbar=pbar,
                 return_df=True,
+                **kwargs,
             )
 
-            # Add the filename
-            df["Image"] = str(f)
-            all_df.append(df)
+            if df is not None:
+                # Add the filename
+                df["Image"] = str(f)
+                all_df.append(df)
 
     # Merge the dataframes and export
     merged_df = pd.concat(all_df, ignore_index=True)
@@ -85,6 +79,7 @@ def process_image(
     input_path,
     output_dir,
     threshold=0.99,
+    min_size=75,
     cell_type="EB",
     segment_inner=False,
     spacing=None,
@@ -127,10 +122,17 @@ def process_image(
         case "EB":
             if segment_inner:
                 labels, inner_cell_labels = segment_cells(
-                    image_rgb, threshold=threshold, segment_inner=True
+                    image_rgb,
+                    threshold=threshold,
+                    segment_inner=True,
+                    min_size=min_size,
                 )
             else:
-                labels = segment_cells(image_rgb, threshold=threshold)
+                labels = segment_cells(
+                    image_rgb,
+                    threshold=threshold,
+                    min_size=min_size,
+                )
 
         case "ES":
             labels, inner_cell_labels = segment_cells_dark(
@@ -139,7 +141,11 @@ def process_image(
 
     # Check if labels are empty
     if labels.max() == 0:
-        raise ValueError("Segmentation failed: No object labels were detected.")
+        # raise ValueError("Segmentation failed: No object labels were detected.")
+        warnings.warn(
+            "Segmentation failed: No object labels were detected. Skipping image."
+        )
+        return None
 
     # Measure properties
     update_status(f"{input_path.name}:Measuring properties", pbar)
@@ -215,6 +221,8 @@ def process_image(
     fig = make_labeled_image(image_rgb, labels, props)
 
     fig.savefig(output_dir / (fn + "_labels.png"))
+
+    plt.close(fig)
 
     update_status(f"{input_path.name}:Data written to {output_dir}.", pbar)
 
