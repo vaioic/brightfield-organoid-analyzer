@@ -149,6 +149,7 @@ def process_image(
             "label",
             "area",
             "feret_diameter_max",
+            "eccentricity",
             "centroid",
             "bbox",
             "image_convex",
@@ -158,34 +159,37 @@ def process_image(
     # Measure internal properties
     # TODO: This is likely broken
     if segment_inner:
-        inner_cell_props = skimage.measure.regionprops(inner_cell_labels)
+        raise NotImplementedError(
+            "The segment_inner function has not been updated for the toolbox. Please contact the developer to fix."
+        )
+        # inner_cell_props = skimage.measure.regionprops(inner_cell_labels)
 
-        mean_distances = []
+        # mean_distances = []
 
-        for p in tqdm(props, leave=False):
-            # Calculate the average thickness of bright regions
-            curr_cell_mask = np.zeros(labels.shape, dtype=np.bool)
-            curr_cell_mask[labels == p["label"]] = True
+        # for p in tqdm(props, leave=False):
+        #     # Calculate the average thickness of bright regions
+        #     curr_cell_mask = np.zeros(labels.shape, dtype=np.bool)
+        #     curr_cell_mask[labels == p["label"]] = True
 
-            if inner_cell_labels:
-                contours = skimage.measure.find_contours(curr_cell_mask)
+        #     if inner_cell_labels:
+        #         contours = skimage.measure.find_contours(curr_cell_mask)
 
-                # Return the longest contour
-                longest = sorted(contours, key=len, reverse=True)[:1]
-                longest = np.array(longest[0], dtype=int)
+        #         # Return the longest contour
+        #         longest = sorted(contours, key=len, reverse=True)[:1]
+        #         longest = np.array(longest[0], dtype=int)
 
-                curr_inner_mask = np.zeros(inner_cell_labels.shape, dtype=np.bool)
-                curr_inner_mask[inner_cell_labels == p["label"]] = True
+        #         curr_inner_mask = np.zeros(inner_cell_labels.shape, dtype=np.bool)
+        #         curr_inner_mask[inner_cell_labels == p["label"]] = True
 
-                # Make a mask that leaves only the center region false
-                curr_inner_mask_bg_filled = curr_inner_mask + (labels != p["label"])
-                curr_inner_mask_bg_filled = skimage.morphology.remove_small_holes(
-                    curr_inner_mask_bg_filled, max_size=500
-                )
+        #         # Make a mask that leaves only the center region false
+        #         curr_inner_mask_bg_filled = curr_inner_mask + (labels != p["label"])
+        #         curr_inner_mask_bg_filled = skimage.morphology.remove_small_holes(
+        #             curr_inner_mask_bg_filled, max_size=500
+        #         )
 
-                curr_dist = ndi.distance_transform_edt(curr_inner_mask_bg_filled)
+        #         curr_dist = ndi.distance_transform_edt(curr_inner_mask_bg_filled)
 
-                mean_distances.append(np.mean(curr_dist[longest[:, 0], longest[:, 1]]))
+        #         mean_distances.append(np.mean(curr_dist[longest[:, 0], longest[:, 1]]))
 
     # Save output
     fn = input_path.stem
@@ -337,6 +341,7 @@ def export_to_csv(output_file, data, spacing=None):
         "label": "Object ID",
         "area": "Area (px)",
         "area_microns": "Area (micron2)",
+        "eccentricity": "Eccentricity",
         "feret_diameter_max": "Feret diameter (px)",
         "feret_diameter_max_microns": "Feret diameter (micron)",
     }
